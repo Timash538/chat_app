@@ -13,6 +13,14 @@ User& User::operator=(User&& other) noexcept {
 	return *this;
 }
 
+User& User::operator=(const User& other)
+{
+	_nickname = other._nickname;
+	_login = other._login;
+	_password = other._password;
+	return *this;
+}
+
 std::string User::getNickname()	const
 {
 	return _nickname;
@@ -28,22 +36,22 @@ std::string User::getPassword() const
 	return _password;
 }
 
-void User::setNickname(std::string&& nickname)
+void User::setNickname(const std::string& nickname)
 {
 	_nickname = nickname;
 }
 
-void User::setLogin(std::string&& login)
+void User::setLogin(const std::string& login)
 {
 	_login = login;
 }
 
-void User::setPassword(std::string&& password)
+void User::setPassword(const std::string& password)
 {
 	_password = password;
 }
 
-bool User::checkPassword(std::string&& password) const
+bool User::checkPassword(const std::string& password) const
 {
 	return (_password == password) ? true : false;
 }

@@ -229,7 +229,7 @@ void MenuController::userMenu()
         int idx = -1;
         _cM->findUserToChatLink(_uM->getCurrentUserID(), idx);
         unsigned int id = atoi(currentString.c_str());
-        if (id >= _cM->getLinks()[idx]._chats.getCount())
+        if (id >= _cM->getLinks()[idx]._chats.size())
         {
             pressEnter("Нет такого ID.");
             continue;
@@ -262,7 +262,7 @@ void MenuController::newChatMenu()
         if (strID == "b") continue;
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         if (!isStringNum(strID)) continue;
-        unsigned int id = atoi(strID.c_str());
+        int id = atoi(strID.c_str());
         if (id == _uM->getCurrentUserID() || id >= _uM->getCount())
         {
             pressEnter("Нет такого ID.");
@@ -304,11 +304,11 @@ void MenuController::chatMenu(unsigned int id)
         std::cout << "чат.\n";
         std::cout << "Участники чата: ";
 
-        for (int i = 0; i < _cM->getChat(chatID)._users.getCount(); i++)
+        for (int i = 0; i < _cM->getChat(chatID)._users.size(); i++)
         {
-            std::cout << _uM->getUser(_cM->getChat(chatID)._users.get(i)).getNickname() << ((i == _cM->getChat(chatID)._users.getCount() - 1) ? ".\n\n" : ", ");
+            std::cout << _uM->getUser(_cM->getChat(chatID)._users.at(i)).getNickname() << ((i == _cM->getChat(chatID)._users.size() - 1) ? ".\n\n" : ", ");
         }
-        if (_cM->getChat(chatID)._messages.isEmpty())
+        if (_cM->getChat(chatID)._messages.empty())
         {
             std::cout << "Нет сообщений, попробуйте что-нибудь написать.\n\n";
         }
@@ -327,7 +327,7 @@ void MenuController::chatMenu(unsigned int id)
         }
         else
         {
-            _cM->getChat(chatID)._messages.add(Message(_uM->getCurrentUser(), message));
+            _cM->getChat(chatID)._messages.push_back(Message(_uM->getCurrentUser(), message));
             _cM->updateUserPtrToLastMsg(_uM->getCurrentUserID(), id);
         }
     }
@@ -338,15 +338,15 @@ void MenuController::addUserToChatMenu(unsigned int chatID)
     while (true)
     {
         std::cout << "Выберите ID пользователя, с которым хотите начать чат.\n! - Вернуться в меню пользователя.\n";
-        Array<int> usersIDInChat = _cM->getUsersIDFromChat(chatID);
+        std::vector<int> usersIDInChat = _cM->getUsersIDFromChat(chatID);
         _uM->showUsersExcluding(std::move(usersIDInChat));
         std::string strID;
         getline(std::cin, strID);
         if (strID == "!") return;
         if (!isStringNum(strID)) continue;
-        unsigned int id = atoi(strID.c_str());
+        int id = atoi(strID.c_str());
         bool f = false;
-        for (int i = 0; i < usersIDInChat.getCount(); i++)
+        for (int i = 0; i < usersIDInChat.size(); i++)
         {
             if (id == usersIDInChat[i])
             {

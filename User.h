@@ -13,14 +13,14 @@ public:
 	}
 	User(User&& other) noexcept;
 	User& operator=(User&& other) noexcept;
-
+	User& operator=(const User& other);
 	std::string getNickname() const;
 	std::string getLogin() const;
 	std::string getPassword() const;
-	void setNickname(std::string&& _nickname);
-	void setLogin(std::string&& _login);
-	void setPassword(std::string&& _password);
-	bool checkPassword(std::string&& _password) const;
+	void setNickname(const std::string& nickname);
+	void setLogin(const std::string& login);
+	void setPassword(const std::string& password);
+	bool checkPassword(const std::string& password) const;
 	bool operator==(const User &b);
 
 private:
