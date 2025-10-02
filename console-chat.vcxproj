@@ -127,9 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Array.h" />
     <ClInclude Include="ChatManager.h" />
-    <ClInclude Include="DataManager.h" />
     <ClInclude Include="MenuController.h" />
     <ClInclude Include="Message.h" />
     <ClInclude Include="User.h" />

@@ -14,6 +14,8 @@ public:
 	Message(User, std::string);
 	Message(const Message& other);
 	Message(Message&& other) noexcept;
+	Message& operator=(const Message& m);
+	Message& operator=(Message&& m) noexcept;
 	
 
 	// Деструктор

@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <memory>
 #include "Message.h"
-#include "Array.h"
 #include "User.h"
 #include "UserManager.h"
 #include "ChatManager.h"
@@ -18,7 +17,7 @@ int main()
 		SetConsoleCP(1251);
 		SetConsoleOutputCP(1251);
 
-		MenuController mC(make_unique<UserManager>(make_unique<Array<User>>()), make_unique<ChatManager>());
+		MenuController mC(make_unique<UserManager>(), make_unique<ChatManager>());
 
 		mC.getUM().addUser(User("admin", "Саша", "123"));
 		mC.getUM().addUser(User("qw", "Димон", "qw"));
@@ -28,7 +27,7 @@ int main()
 		mC.getUM().addUser(User("art", "EvilArthas", "legchayshayadlyavelichayshego123"));
 
 		mC.getCM().addNewChat(ChatType::FORALL);
-		for (unsigned int i = 0; i < mC.getUM().getCount(); i++) mC.getCM().addUserToLastChat(i);
+		for (int i = 0; i < mC.getUM().getCount(); i++) mC.getCM().addUserToLastChat(i);
 		
 		mC.getCM().addNewChat(ChatType::PRIVATE, 0);
 		mC.getCM().addNewChat(ChatType::GROUP, 0);

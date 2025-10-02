@@ -1,5 +1,5 @@
 #pragma once
-#include "Array.h"
+#include <vector>
 #include "Message.h"
 #include "UserManager.h"
 
@@ -17,45 +17,47 @@ public:
 	ChatManager(const ChatManager& other);
 	ChatManager& operator=(ChatManager&& other) noexcept;
 	ChatManager& operator=(const ChatManager& other);
-	void addNewChat(ChatType&& type, unsigned int userID);
-	void addNewChat(ChatType&& type);
+	void addNewChat(const ChatType& type, unsigned int userID);
+	void addNewChat(const ChatType& type);
 	void addUserToChat(int userID, int chatID);
 	void addUserToLastChat(int userID);
 	bool findUserToChatLink(int userID, int& index);
 	void updateUserPtrToLastMsg(int userID, int chatID);
 	void showAllUserChats(int userID, const UserManager& uM);
 	int countUnreadMsgs(int userID, int chatID);
-	const Array<Chat>& getChats();
+	const std::vector<Chat>& getChats();
 	Chat& getChat(unsigned int chatID);
-	const Array<UserToChatLink>& getLinks();
+	const std::vector<UserToChatLink>& getLinks();
 	void showMessages(unsigned int chatID);
 	void showAllLinks(const UserManager& uM);
-	Array<int> getUsersIDFromChat(int chatID);
+	std::vector<int> getUsersIDFromChat(int chatID);
 
 private:
 
 	struct Chat
 	{
 		ChatType _type;
-		Array<Message> _messages;
-		Array<int> _users;
+		std::vector<Message> _messages;
+		std::vector<int> _users;
 
 		Chat(ChatType type);
 		Chat(const Chat& chat);
 		Chat(Chat&& chat) noexcept;
+		Chat& operator=(const Chat& chat);
+		Chat& operator=(Chat&& chat) noexcept;
 		Chat() = default;
 	};
 
 	struct UserToChatLink
 	{
 		int _userID;
-		Array<int> _chats;
-		Array<int> _userPtrToLastMsg;
+		std::vector<int> _chats;
+		std::vector<int> _userPtrToLastMsg;
 
 		UserToChatLink(int userID, int chatID);
 		UserToChatLink() = default;
 	};
 
-	Array<Chat> _chats;
-	Array<UserToChatLink> _links;
+	std::vector<Chat> _chats;
+	std::vector<UserToChatLink> _links;
 };
