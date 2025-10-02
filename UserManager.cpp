@@ -79,14 +79,8 @@ bool UserManager::findUserByNickname(const std::string& nickname, int& index) co
 
 bool UserManager::findUserByNickname(const std::string& nickname) const
 {
-	for (int i = 0; i < _users.size(); i++)
-	{
-		if (_users.at(i).getNickname() == nickname)
-		{
-			return true;
-		}
-	}
-	return false;
+	int dummyIndex;
+	return findUserByNickname(nickname, dummyIndex);
 }
 
 bool UserManager::findUserByLogin(const std::string& login, int& index) const

@@ -86,6 +86,7 @@ void ChatManager::updateUserPtrToLastMsg(int userID, int chatID)
 {
 	int idx = -1;
 	findUserToChatLink(userID, idx);
+	if (idx == -1) return;
 	_links.at(idx)._userPtrToLastMsg.at(chatID) = _chats.at(_links.at(idx)._chats.at(chatID))._messages.size();
 }
 
@@ -93,6 +94,7 @@ void ChatManager::showAllUserChats(int userID, const UserManager& uM)
 {
 	int idx = -1;
 	findUserToChatLink(userID, idx);
+	if (idx == -1) return;
 
 	if (_links.at(idx)._chats.empty())
 	{
