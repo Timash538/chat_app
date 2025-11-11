@@ -22,7 +22,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{2c09f351-4e3d-4757-afe3-cbe95ac7027f}</ProjectGuid>
-    <RootNamespace>consolechat</RootNamespace>
+    <RootNamespace>chat_app</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
