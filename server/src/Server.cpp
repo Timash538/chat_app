@@ -83,7 +83,7 @@ void Server::handleClient(Socket clientSocket)
 	buffer[bytesRecieved] = '\0';
 	std::string request = buffer;
 
-	std::cout << "Recieved request (" << bytesRecieved << "bytes) << std::endl";
+	std::cout << "Recieved request (" << bytesRecieved << "bytes)" << std::endl;
 
 	_handler(std::move(clientSocket), request);
 }
