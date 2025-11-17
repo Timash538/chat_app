@@ -50,7 +50,7 @@ public:
     int send(const void* data, size_t length);
     int recv(void* buffer, size_t length);
 
-    void close();
+    void closeSocket();
     bool isValid() const { return _socket != INVALID_SOCKET; }
     int getDescriptor() const { return _socket; }
 

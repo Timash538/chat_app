@@ -18,7 +18,7 @@ Socket::Socket() : _socket(INVALID_SOCKET), initialized(false)
 
 Socket::~Socket()
 {
-	close();
+	closeSocket();
 	if (initialized)
 	{
 		cleanup();
@@ -36,7 +36,7 @@ Socket& Socket::operator=(Socket&& other) noexcept
 {
 	if (this != &other)
 	{
-		close();
+		closeSocket();
 		_socket = other._socket;
 		initialized = other.initialized;
 		other._socket = INVALID_SOCKET;
@@ -203,7 +203,7 @@ int Socket::recv(void* buffer, size_t length) {
 	return result;
 }
 
-void Socket::close() {
+void Socket::closeSocket() {
 	if (_socket != INVALID_SOCKET) {
 		CLOSE_SOCKET(_socket);
 		_socket = INVALID_SOCKET;

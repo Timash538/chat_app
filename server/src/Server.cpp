@@ -63,7 +63,7 @@ bool Server::start(RequestHandler handler)
 	}
 
 	_running = false;
-	_serverSocket.close();
+	_serverSocket.closeSocket();
 	std::cout << "Server stopped" << std::endl;
 	return true;
 }
