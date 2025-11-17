@@ -1,4 +1,4 @@
-#include "Message.h"
+#include <Message.h>
 
 Message::Message(User sender, std::string msg) : _sender(std::make_shared<User>(sender)), _msg(msg)
 {

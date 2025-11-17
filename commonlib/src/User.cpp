@@ -1,4 +1,4 @@
-#include "User.h"
+#include <User.h>
 
 User::User(User&& other) noexcept
 	: _nickname(std::move(other._nickname)),

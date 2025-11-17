@@ -1,6 +1,6 @@
 add_executable(server 
 	src/main.cpp 
-)
+ "include/Server.h" "src/Server.cpp")
 
 target_include_directories(server PRIVATE 
 	${CMAKE_CURRENT_SOURCE_DIR}/include
