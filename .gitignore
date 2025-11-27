@@ -8,9 +8,14 @@ CPackConfig.cmake
 CPackSourceConfig.cmake
 Testing/
 
+# vcpkg
+vcpkg_installed/
+vcpkg/
+
 # VS CMake cache
 .vs/
 out/
+build/
 
 # Сборки
 Debug/

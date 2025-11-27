@@ -1,9 +1,8 @@
 add_executable(client
 	src/main.cpp
-	src/ChatManager.cpp
 	src/MenuController.cpp
-	src/UserManager.cpp
-  )
+	src/Client.cpp
+   "include/IChatService.h" "include/UserService.h" "include/ChatService.h" "include/IUserService.h")
 
 target_include_directories(client PRIVATE 
 	${CMAKE_CURRENT_SOURCE_DIR}/include

@@ -1,90 +1,87 @@
-#include <Server.h>
-
+#include "Server.h"
 #include <iostream>
-#include <signal.h>
-#include <cstring>
+#include <csignal>
+#include <memory>
 
-static volatile sig_atomic_t g_interrupted = 0;
+static std::atomic<bool> g_interrupted{ false };
 
-void Server::signalHandler(int signal)
+void signalHandler(int) { g_interrupted = true; }
+
+Server::Server(const std::string& host, uint16_t port)
+    : _host(host), _port(port), _acceptor(_ioContext)
 {
-	g_interrupted = 1;
+    std::signal(SIGINT, signalHandler);
+    std::signal(SIGTERM, signalHandler);
 }
 
-Server::Server(const std::string& host, uint16_t port) : _host(host), _port(port), _running(false)
-{
-	signal(SIGINT, Server::signalHandler);
-	signal(SIGTERM, Server::signalHandler);
+Server::~Server() { stop(); }
+
+bool Server::start(MessageHandler handler) {
+    if (_running.exchange(true)) return false;
+
+    _handler = std::move(handler);
+
+    asio::ip::tcp::resolver resolver(_ioContext);
+    auto ep = *resolver.resolve(_host, std::to_string(_port)).begin();
+    _acceptor.open(ep.endpoint().protocol());
+    _acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true));
+    _acceptor.bind(ep);
+    _acceptor.listen();
+
+    std::cout << "Server started on " << _host << ":" << _port << "\n";
+
+    doAccept();
+    _ioThread = std::thread([this] { _ioContext.run(); });
+
+    while (_running && !g_interrupted) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    stop();
+    return true;
 }
 
-Server::~Server()
-{ }
-
-bool Server::start(RequestHandler handler)
-{
-	if (isRunning())
-	{
-		std::cerr << "Server is already running!" << std::endl;
-		return false;
-	}
-
-	_handler = handler;
-
-	if (!_serverSocket.bind(_host, _port))
-	{
-		std::cerr << "Failed to bind server socket to " << _host << ":" << _port << std::endl;
-		return false;
-	}
-
-	if (!_serverSocket.listen(5)) {
-		std::cerr << "Failed to listen on port " << _port << std::endl;
-		return false;
-	}
-
-	std::cout << "Server started on " << _host << ":" << _port << std::endl;
-	std::cout << "Press Ctrl+C to stop the server" << std::endl;
-
-	_running = true;
-	g_interrupted = 0;
-
-	while (_running && !g_interrupted) {
-		Socket clientSocket = _serverSocket.accept();
-
-		if (!clientSocket.isValid()) {
-			if (g_interrupted) {
-				break;
-			}
-			continue;
-		}
-
-		std::cout << "Client connected" << std::endl;
-		handleClient(std::move(clientSocket));
-		std::cout << "Client disconnected" << std::endl;
-	}
-
-	_running = false;
-	_serverSocket.closeSocket();
-	std::cout << "Server stopped" << std::endl;
-	return true;
+void Server::stop() {
+    if (!_running.exchange(false)) return;
+    _ioContext.stop();
+    if (_ioThread.joinable()) _ioThread.join();
+    std::cout << "Server stopped\n";
 }
 
-void Server::handleClient(Socket clientSocket)
-{
-	const size_t bufferSize = 4096;
-	char buffer[bufferSize];
-
-	int bytesRecieved = clientSocket.recv(buffer, bufferSize - 1);
-
-	if (bytesRecieved <= 0)
-	{
-		return;
-	}
-
-	buffer[bytesRecieved] = '\0';
-	std::string request = buffer;
-
-	std::cout << "Recieved request (" << bytesRecieved << "bytes)" << std::endl;
-
-	_handler(std::move(clientSocket), request);
+void Server::doAccept() {
+    _acceptor.async_accept([this](std::error_code ec, asio::ip::tcp::socket socket) {
+        if (!ec && _running) {
+            std::cout << "Client connected\n";
+            auto sharedSocket = std::make_shared<asio::ip::tcp::socket>(std::move(socket));
+            doRead(sharedSocket);
+        }
+        if (_running) doAccept();
+        });
 }
 
+void Server::doRead(std::shared_ptr<asio::ip::tcp::socket> socket) {
+    const size_t maxMessageSize = 4096;
+    auto buffer = std::make_shared<std::vector<char>>(maxMessageSize);
+
+    socket->async_read_some(asio::buffer(*buffer), [this, socket, buffer](
+        std::error_code ec, size_t bytesTransferred) {
+            if (!ec && bytesTransferred > 0 && _running) {
+                (*buffer)[bytesTransferred] = '\0';
+                std::string message(buffer->data(), bytesTransferred);
+
+                std::cout << "Received (" << bytesTransferred << "): " << message << "\n";
+
+                // Передаём сообщение обработчику
+                if (_handler) {
+                    _handler(*socket, message);
+                }
+
+                // Читаем следующее сообщение
+                doRead(socket);
+            }
+            else {
+                std::cout << "Client disconnected\n";
+                socket->close();
+            }
+        });
+}

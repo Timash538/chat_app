@@ -1,26 +1,30 @@
 #pragma once
-#include <Socket.h>
+
+#include <asio.hpp>
 #include <functional>
+#include <atomic>
+#include <memory>
 
-class Server
-{
+class Server {
 public:
-	using RequestHandler = std::function<void(Socket clientSocket, const std::string& request)>;
+    // Обработчик получает сокет и ОДНО сообщение, но может читать дальше
+    using MessageHandler = std::function<void(asio::ip::tcp::socket&, const std::string&)>;
 
-	Server(const std::string& host, uint16_t port);
-	~Server();
+    Server(const std::string& host, uint16_t port);
+    ~Server();
 
-	bool start(RequestHandler handler);
+    bool start(MessageHandler handler);
+    void stop();
 
-	bool isRunning() const { return _running; }
-		
 private:
-	uint16_t _port;
-	std::string _host;
-	Socket _serverSocket;
-	bool _running;
-	RequestHandler _handler;
+    void doAccept();
+    void doRead(std::shared_ptr<asio::ip::tcp::socket> socket);
 
-	void handleClient(Socket clientSocket);
-	static void signalHandler(int signal);
+    std::string _host;
+    uint16_t _port;
+    asio::io_context _ioContext;
+    asio::ip::tcp::acceptor _acceptor;
+    MessageHandler _handler;
+    std::atomic<bool> _running{ false };
+    std::thread _ioThread;
 };

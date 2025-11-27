@@ -1,27 +1,17 @@
-#include <Server.h>
-#include <iostream>
+#include "Server.h"
 
-int main()
-{ 
-    Server server("*",7777);
+void onMessage(asio::ip::tcp::socket& client, const std::string& msg) {
+    if (msg == "quit\n") {
+        asio::write(client, asio::buffer("Bye!\n"));
+        // Не закрываем сокет здесь — сервер сам закроет при ошибке чтения
+        return;
+    }
 
-    // Определяем обработчик запросов
-    auto requestHandler = [](Socket clientSocket, const std::string& request) {
-        std::string response =
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-            "Hello from Simple TCP Server!\n"
-            "Request size: " + std::to_string(request.size()) + " bytes\n";
+    std::string response = "Echo: " + msg;
+    asio::write(client, asio::buffer(response));
+}
 
-        clientSocket.send(response.c_str(), response.size());
-        };
-
-    // Запускаем сервер (блокирующий вызов)
-    std::cout << "Starting server..." << std::endl;
-    server.start(requestHandler);
-
-    std::cout << "Server has stopped" << std::endl;
-    return 0;
+int main() {
+    Server server("0.0.0.0", 7777);
+    server.start(onMessage);
 }
