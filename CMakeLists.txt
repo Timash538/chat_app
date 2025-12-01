@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.25)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg")
   message(STATUS "Bootstrapping vcpkg...")
@@ -18,6 +20,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(asio CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(GTest CONFIG REQUIRED)
 
 if(WIN32)
 	add_definitions(-D_WIN32_WINT=0x0601)
@@ -32,5 +36,8 @@ endif()
 add_subdirectory(commonlib)
 add_subdirectory(server)
 add_subdirectory(client)
-add_subdirectory(tests)
+
+if(GTest_FOUND)
+    add_subdirectory(tests)
+endif()
 

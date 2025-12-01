@@ -1,32 +1,26 @@
 #pragma once
 #include <string>
+#include <nlohmann/json.hpp>
 
-class User 
-{
-public:
-
-	User(std::string login, std::string nickname, std::string password) : 
-		_login(login), _nickname(nickname), _password(password) {}
-	User() = default;
-	User(const User& other) :
-		_login(other._login), _nickname(other._nickname), _password(other._password) {
-	}
-	User(User&& other) noexcept;
-	User& operator=(User&& other) noexcept;
-	User& operator=(const User& other);
-	std::string getNickname() const;
-	std::string getLogin() const;
-	std::string getPassword() const;
-	void setNickname(const std::string& nickname);
-	void setLogin(const std::string& login);
-	void setPassword(const std::string& password);
-	bool checkPassword(const std::string& password) const;
-	bool operator==(const User &b);
-
-private:
-
-	std::string _login;
-	std::string _nickname;
-	std::string _password;
-
+struct User	{
+	int id;
+	std::string login;
+	std::string nickname;
+	std::string password;
 };
+
+void to_json(nlohmann::json& j, const User& u) {
+    j = nlohmann::json{
+        {"id", u.id},
+        {"login", u.login},
+        {"nickname", u.nickname},
+        {"password", u.password}
+    };
+}
+
+void from_json(const nlohmann::json& j, User& u) {
+    j.at("id").get_to(u.id);
+    j.at("login").get_to(u.login);
+    j.at("nickname").get_to(u.nickname);
+    j.at("password").get_to(u.password);
+}

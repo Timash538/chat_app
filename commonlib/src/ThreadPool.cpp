@@ -3,7 +3,7 @@
 #include <iostream>
 
 ThreadPool::ThreadPool() :
-	m_thread_count(std::thread::hardware_concurrency() != 0 ? std::thread::hardware_concurrency() : 4),
+	m_thread_count((std::thread::hardware_concurrency() != 0 ? std::thread::hardware_concurrency() : 4)-1),
 	m_thread_queues(m_thread_count),
 	m_index(0)
 {}
@@ -23,15 +23,17 @@ void ThreadPool::start() {
 	}
 }
 void ThreadPool::stop() {
+	for (int i = 0; i < m_thread_count; ++i) {
+		push_task([] {});
+	}
 	for (auto& t : m_threads) {
 		t->interrupt();
 	}
 }
-void ThreadPool::push_task(FuncType f, int id, int arg)
+void ThreadPool::push_task(task_type t)
 {
 	int queue_to_push = m_index++ % m_thread_count;
-	task_type task = [=] {f(id, arg); };
-	m_thread_queues[queue_to_push].push(task);
+	m_thread_queues[queue_to_push].push(std::move(t));
 }
 void ThreadPool::threadFunc(int qindex)
 {

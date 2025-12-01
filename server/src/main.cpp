@@ -1,17 +1,16 @@
 #include "Server.h"
+#include "iostream"
 
-void onMessage(asio::ip::tcp::socket& client, const std::string& msg) {
-    if (msg == "quit\n") {
-        asio::write(client, asio::buffer("Bye!\n"));
+std::string onMessage(const std::string& msg) {
+    if (msg == "quit") {
         // Не закрываем сокет здесь — сервер сам закроет при ошибке чтения
-        return;
+        return "Bye";
     }
-
-    std::string response = "Echo: " + msg;
-    asio::write(client, asio::buffer(response));
+    std::cout << msg;
+    return "Echo: " + msg;
 }
 
 int main() {
-    Server server("0.0.0.0", 7777);
+    Server server("0.0.0.0", 9955);
     server.start(onMessage);
 }

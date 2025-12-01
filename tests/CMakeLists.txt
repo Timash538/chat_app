@@ -1,14 +1,15 @@
+find_package(GTest REQUIRED
+)
+
 add_executable(tests
-	main.cpp 
-    InterruptableThread.cpp
-	ThreadPool.cpp
+		User_test.cpp
+		Message_test.cpp
 )
 
-target_include_directories(tests PRIVATE 
-	${CMAKE_CURRENT_SOURCE_DIR}
+target_link_libraries(tests
+	PRIVATE
+		GTest::gtest_main
+		commonlib
 )
 
-# Платформенные зависимости
-if(WIN32)
-    target_link_libraries(tests PRIVATE ws2_32)
-endif()
+add_test(NAME AllTests COMMAND tests)

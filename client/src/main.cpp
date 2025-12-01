@@ -1,7 +1,5 @@
 #include <iostream>
 #include <memory>
-#include <Message.h>
-#include <User.h>
 #include <Client.h>
 #include <thread>
 
@@ -19,7 +17,7 @@ int main()
 		system("cls");
 
 		Client c;
-		c.connect("127.0.0.1", 7777);
+		c.connect("94.19.108.219", 9955);
 		while (true)
 		{
 			string j;

@@ -5,7 +5,7 @@
 #include <vector>
 #include <BlockedQueue.h>
 typedef std::function<void()> task_type;
-typedef void (*FuncType) (int, int);
+typedef void (*FuncType) (std::string);
 
 class InterruptableThread;
 
@@ -16,7 +16,7 @@ public:
 	~ThreadPool();
 	void start();
 	void stop();
-	void push_task(FuncType f, int id, int arg);
+	void push_task(task_type);
 	void threadFunc(int qindex);
 private:
 	int m_thread_count = 0;

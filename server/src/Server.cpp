@@ -1,7 +1,8 @@
-#include "Server.h"
+п»ї#include "Server.h"
 #include <iostream>
 #include <csignal>
 #include <memory>
+#include <asio/write.hpp>
 
 static std::atomic<bool> g_interrupted{ false };
 
@@ -14,9 +15,14 @@ Server::Server(const std::string& host, uint16_t port)
     std::signal(SIGTERM, signalHandler);
 }
 
-Server::~Server() { stop(); }
+Server::~Server() { 
+    
+    stop(); 
+    _threadPool.stop();
+}
 
-bool Server::start(MessageHandler handler) {
+bool Server::start(RequestHandler handler) {
+    _threadPool.start();
     if (_running.exchange(true)) return false;
 
     _handler = std::move(handler);
@@ -60,28 +66,24 @@ void Server::doAccept() {
 }
 
 void Server::doRead(std::shared_ptr<asio::ip::tcp::socket> socket) {
-    const size_t maxMessageSize = 4096;
-    auto buffer = std::make_shared<std::vector<char>>(maxMessageSize);
+    auto buf = std::make_shared<std::vector<char>>(4096);
+    socket->async_read_some(asio::buffer(*buf),
+        [this, socket, buf](error_code ec, size_t n) {
+            if (ec || n == 0 || !_running) return;
 
-    socket->async_read_some(asio::buffer(*buffer), [this, socket, buffer](
-        std::error_code ec, size_t bytesTransferred) {
-            if (!ec && bytesTransferred > 0 && _running) {
-                (*buffer)[bytesTransferred] = '\0';
-                std::string message(buffer->data(), bytesTransferred);
+            std::string msg(buf->data(), n);
+            _threadPool.push_task([this, socket, msg = std::move(msg)] {
+                if (!_running) return;
+                auto reply = _handler(msg) + "\n";
+                asio::post(_ioContext, [socket, reply = std::move(reply)]() mutable {
+                    if (socket->is_open()) {
+                        auto data = std::make_shared<std::string>(std::move(reply));
+                        asio::async_write(*socket, asio::buffer(*data),
+                            [data](error_code, size_t) {});
+                    }
+                    });
+            });
 
-                std::cout << "Received (" << bytesTransferred << "): " << message << "\n";
-
-                // Передаём сообщение обработчику
-                if (_handler) {
-                    _handler(*socket, message);
-                }
-
-                // Читаем следующее сообщение
-                doRead(socket);
-            }
-            else {
-                std::cout << "Client disconnected\n";
-                socket->close();
-            }
+            doRead(socket);
         });
 }
