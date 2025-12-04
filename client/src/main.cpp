@@ -1,7 +1,8 @@
 #include <iostream>
 #include <memory>
-#include <Client.h>
+#include <client/Client.h>
 #include <thread>
+#include <nlohmann/json.hpp>
 
 using namespace std;
 
@@ -17,13 +18,16 @@ int main()
 		system("cls");
 
 		Client c;
-		c.connect("94.19.108.219", 9955);
+		c.connect("localhost", 9955);
 		while (true)
 		{
 			string j;
 			std::cin >> j;
-			std::cout << c.sendRequest(j + '\n');
+			//std::cout << c.sendRequest(j + '\n');
 			if (j == "quit") break;
+			nlohmann::json req;
+			req["cmd"] = "ping";
+			std::cout << c.sendRequest(req.dump() + "\n");
 		}
 		
 	}

@@ -1,5 +1,5 @@
-#include <ThreadPool.h>
-#include <InterruptableThread.h>
+#include <server/ThreadPool.h>
+#include <server/InterruptableThread.h>
 #include <iostream>
 
 ThreadPool::ThreadPool() :
@@ -40,7 +40,7 @@ void ThreadPool::threadFunc(int qindex)
 	while (true)
 	{
 		if (InterruptableThread::checkInterrupted()) {
-			cout << "thread was interrupted" << endl;
+			std::cout << "thread was interrupted" << std::endl;
 			return;
 		}
 		task_type task_to_do;

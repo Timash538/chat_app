@@ -1,7 +1,7 @@
 CREATE TABLE Users (
     id SERIAL PRIMARY KEY,
     login TEXT UNIQUE NOT NULL,
-    nickname TEXT NOT NULL,
+    username TEXT NOT NULL,
     password_hash TEXT NOT NULL
 );
 
@@ -25,7 +25,7 @@ CREATE TABLE Messages (
 );
 
 -- Тестовые данные
-INSERT INTO Users (login, nickname, password_hash)
+INSERT INTO Users (login, username, password_hash)
 VALUES
     ('alice', 'Alice', 'fake_hash_1'),
     ('bob', 'Bob', 'fake_hash_2');

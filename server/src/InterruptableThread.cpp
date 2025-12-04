@@ -1,5 +1,5 @@
-#include <InterruptableThread.h>
-#include <ThreadPool.h>
+#include <server/InterruptableThread.h>
+#include <server/ThreadPool.h>
 
 thread_local bool thread_interrupt_flag = false;
 

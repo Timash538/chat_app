@@ -3,7 +3,7 @@
 #include <thread>
 #include <functional>
 #include <vector>
-#include <BlockedQueue.h>
+#include <server/BlockedQueue.h>
 typedef std::function<void()> task_type;
 typedef void (*FuncType) (std::string);
 
