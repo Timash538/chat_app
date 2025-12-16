@@ -2,15 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg")
-  message(STATUS "Bootstrapping vcpkg...")
-  execute_process(
-    COMMAND git clone https://github.com/microsoft/vcpkg.git
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
-endif()
-
-set(CMAKE_TOOLCHAIN_FILE "vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE FILEPATH "Path to vcpkg toolchain file")
+set("-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE FILEPATH "Path to vcpkg toolchain file")
 
 project(chat_app)
 
@@ -19,10 +11,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+set(VCPKG_MANIFEST_MODE ON)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+find_package(Qt5 COMPONENTS Widgets Network Core Gui REQUIRED)
+
 find_package(asio CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(PostgreSQL REQUIRED)
+find_package(unofficial-sodium CONFIG REQUIRED)
 
 if(WIN32)
 	add_definitions(-D_WIN32_WINT=0x0601)

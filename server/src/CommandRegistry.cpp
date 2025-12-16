@@ -1,18 +1,18 @@
 #include <server/CommandRegistry.h>
 
-void CommandRegistry::registerCommand(const std::string& name, CommandFactory factory)
+
+void CommandRegistry::registerCommand(const std::string& name, std::unique_ptr<ICommand> command)
 {
-	m_factories[name] = factory;
+	m_commands[name] = std::move(command);
 }
 
-nlohmann::json CommandRegistry::execute(const std::string& cmd, UserID executor_id, const nlohmann::json& args)
+nlohmann::json CommandRegistry::execute(const std::string& cmd, std::optional<UserID> userID, const nlohmann::json& args) const
 {
-	auto it = m_factories.find(cmd);
-	if (it == m_factories.end())
+	auto it = m_commands.find(cmd);
+	if (it == m_commands.end())
 	{
-		return { {"error", "unknown command: " + cmd} };
+		throw std::runtime_error("Bad command");
 	}
 
-	auto command = it->second();
-	return command->execute(executor_id, args);
-}
+	return it->second->execute(userID, args);
+};

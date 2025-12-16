@@ -1,39 +1,21 @@
-#include <iostream>
-#include <memory>
-#include <client/Client.h>
-#include <thread>
-#include <nlohmann/json.hpp>
+﻿#include <QApplication>
+#include <QLabel>
+#include <QVBoxLayout>
+#include <QWidget>
+#include <client/AuthDialog.h>
+#include <client/MainWindow.h>
 
-using namespace std;
+int main(int argc, char* argv[]) {
+    QApplication app(argc, argv);
+    app.setStyle("Fusion");
+    AuthDialog aD;
 
+    if(aD.exec() == QDialog::Accepted)
+    {
+        MainWindow main_window(aD.getSocket(),aD.userId(),aD.getUsername());
+        main_window.show();
+        return app.exec();
+    }
 
-int main()
-{
-
-	try
-	{
-		SetConsoleCP(1251);
-		SetConsoleOutputCP(1251);
-
-		system("cls");
-
-		Client c;
-		c.connect("localhost", 9955);
-		while (true)
-		{
-			string j;
-			std::cin >> j;
-			//std::cout << c.sendRequest(j + '\n');
-			if (j == "quit") break;
-			nlohmann::json req;
-			req["cmd"] = "ping";
-			std::cout << c.sendRequest(req.dump() + "\n");
-		}
-		
-	}
-	catch (exception& e)
-	{
-		cout << e.what();
-	}
-	return 0;
+    return 0;
 }

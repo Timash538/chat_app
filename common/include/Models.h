@@ -32,9 +32,9 @@ struct RegisterRequest {
 
 struct AuthResponse {
     bool success = false;
-    std::string error;      // заполняется при success == false
-    int user_id = 0;        // заполняется при success == true
-    std::string username;   // заполняется при success == true
+    std::string error;
+    int user_id = 0;
+    std::string username;
 
     operator nlohmann::json() const {
         if (!success) {
@@ -49,7 +49,7 @@ struct AuthResponse {
 };
 
 struct UserPreview {
-    int id = 0;
+    uint64_t id = 0;
     std::string username;
 
     friend void to_json(nlohmann::json& j, const UserPreview& u) {
@@ -62,24 +62,21 @@ struct UserPreview {
 };
 
 struct UserFull {
-    int id = 0;
-    std::string login;          
-    std::string username;       
-    std::string created_at;     
+    uint64_t id = 0;
+    std::string login;
+    std::string username;
 
     friend void to_json(nlohmann::json& j, const UserFull& u) {
         j = {
             {"id", u.id},
             {"login", u.login},
-            {"username", u.username},
-            {"created_at", u.created_at}
+            {"username", u.username}
         };
     }
     friend void from_json(const nlohmann::json& j, UserFull& u) {
         u.id = j.value("id", 0);
         u.login = j.value("login", "");
         u.username = j.value("username", "");
-        u.created_at = j.value("created_at", "");
     }
 };
 
@@ -99,27 +96,40 @@ struct UserList {
 };
 
 struct ChatPreview {
-    int id = 0;
-    std::string name;               
-    std::string last_message;       
-    std::string last_sender;        
-    std::string last_time;          
+    uint64_t id = 0;
+    std::string name;
+    std::string type;
 
     friend void to_json(nlohmann::json& j, const ChatPreview& c) {
         j = {
             {"id", c.id},
             {"name", c.name},
-            {"last_message", c.last_message},
-            {"last_sender", c.last_sender},
-            {"last_time", c.last_time}
+            {"type", c.type}
         };
     }
     friend void from_json(const nlohmann::json& j, ChatPreview& c) {
         c.id = j.value("id", 0);
         c.name = j.value("name", "");
-        c.last_message = j.value("last_message", "");
-        c.last_sender = j.value("last_sender", "");
-        c.last_time = j.value("last_time", "");
+        c.type = j.value("type", "");
+    }
+};
+
+struct ChatFull {
+    uint64_t id = 0;
+    std::string name;
+    std::vector<UserPreview> users;
+
+    friend void to_json(nlohmann::json& j, const ChatFull& c) {
+        j = {
+            {"id", c.id},
+            {"name", c.name},
+            {"users", c.users}
+        };
+    }
+    friend void from_json(const nlohmann::json& j, ChatFull& c) {
+        c.id = j.value("id", 0);
+        c.name = j.value("name", "");
+        c.users = j.value("users", std::vector<UserPreview>{});
     }
 };
 
@@ -139,32 +149,32 @@ struct ChatList {
 };
 
 struct Message {
-    int id = 0;
-    int sender_id = 0;
-    std::string sender_name;
+    uint64_t id = 0;
+    uint64_t chat_id = 0;
+    uint64_t sender_id = 0;
     std::string content;
-    std::string timestamp; // ISO8601
+    std::string created_at;
 
     friend void to_json(nlohmann::json& j, const Message& m) {
         j = {
             {"id", m.id},
+            {"chat_id", m.chat_id},
             {"sender_id", m.sender_id},
-            {"sender_name", m.sender_name},
             {"content", m.content},
-            {"timestamp", m.timestamp}
+            {"created_at", m.created_at}
         };
     }
     friend void from_json(const nlohmann::json& j, Message& m) {
         m.id = j.value("id", 0);
+        m.chat_id = j.value("chat_id", 0);
         m.sender_id = j.value("sender_id", 0);
-        m.sender_name = j.value("sender_name", "");
         m.content = j.value("content", "");
-        m.timestamp = j.value("timestamp", "");
+        m.created_at = j.value("created_at", "");
     }
 };
 
 struct MessageHistory {
-    int chat_id = 0;
+    uint64_t chat_id = 0;
     std::vector<Message> messages;
 
     friend void to_json(nlohmann::json& j, const MessageHistory& mh) {

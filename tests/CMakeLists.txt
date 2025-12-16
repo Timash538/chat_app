@@ -9,7 +9,7 @@ add_executable(tests
 target_link_libraries(tests
 	PRIVATE
 		GTest::gtest_main
-		commonlib
+		common
 )
 
 add_test(NAME AllTests COMMAND tests)

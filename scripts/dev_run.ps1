@@ -1,9 +1,9 @@
 ﻿$ErrorActionPreference = "Stop"
 $projectRoot = $PSScriptRoot -replace '\\scripts$', ''
-$binDir = "$projectRoot\out\build\bin"
+$binDir = "$projectRoot\build\x64-Debug\bin"
 
-$serverExe = "$binDir\Debug\server.exe"
-$clientExe = "$binDir\Debug\client.exe"
+$serverExe = "$binDir\server.exe"
+$clientExe = "$binDir\client.exe"
 $composeFile = "$projectRoot\docker-compose.yml"
 
 # --- Очистка ---
@@ -14,8 +14,8 @@ cmd /c "docker-compose -f `"$composeFile`" down -v --remove-orphans >nul 2>&1"
 
 # --- Сборка ---
 Write-Host "[+] Building..."
-& cmake -B "$projectRoot\out\build" -S "$projectRoot" -DCMAKE_BUILD_TYPE=Debug
-& cmake --build "$projectRoot\out\build" --config Debug --parallel
+& cmake -B "$projectRoot\build" -S "$projectRoot" -DCMAKE_BUILD_TYPE=Debug
+& cmake --build "$projectRoot\build" --config Debug --parallel
 
 # --- Проверка наличия файлов ---
 if (-not (Test-Path $serverExe)) { throw "❌ server.exe NOT FOUND at $serverExe" }

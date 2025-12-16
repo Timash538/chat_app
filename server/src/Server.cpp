@@ -4,13 +4,17 @@
 #include <iostream>
 #include <csignal>
 #include <memory>
+#include <string>
 
 static std::atomic<bool> g_interrupted{ false };
 void signalHandler(int) { g_interrupted = true; }
 
 Server::Server(const std::string& host, uint16_t port)
     : m_host(host), m_port(port), m_acceptor(m_ioContext),
-    m_commandRegistry(std::make_unique<CommandRegistry>()) {
+    m_db("host=localhost dbname=chat_dev user=dev password=devpass"),
+    m_userRepo(m_db), m_messageRepo(m_db), m_chatRepo(m_db),
+    m_commandRegistry(std::make_unique<CommandRegistry>(m_userRepo, m_messageRepo, m_chatRepo))
+{
     std::signal(SIGINT, signalHandler);
     std::signal(SIGTERM, signalHandler);
 }
@@ -33,6 +37,7 @@ bool Server::start() {
     doAccept();
 
     m_ioThread = std::thread([this] { m_ioContext.run(); });
+    m_threadPool.start();
 
     while (m_running && !g_interrupted) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -47,87 +52,112 @@ void Server::stop() {
     m_ioContext.stop();
     if (m_ioThread.joinable()) m_ioThread.join();
     std::cout << "Server stopped\n";
+    m_threadPool.stop();
 }
 
 void Server::doAccept() {
     if (!m_running) return;
 
-    m_acceptor.async_accept([this](std::error_code ec, asio::ip::tcp::socket socket) {
-        if (!ec && m_running) {
-            auto conn = Connection::create(m_ioContext, this);
+    m_acceptor.async_accept([this, self = shared_from_this()](std::error_code ec, asio::ip::tcp::socket socket) {
+        if (!ec && self->m_running) {
+            auto conn = Connection::create(m_ioContext, self);
             conn->socket() = std::move(socket);
             conn->start();
         }
-        if (m_running) doAccept();
+        asio::post(m_ioContext, [this, self] {
+            if (self->m_running) doAccept();
+            });
+        
         });
 }
 
 void Server::handleRequest(std::shared_ptr<Connection> conn, const nlohmann::json& req) {
+
     std::string cmd = req.value("cmd", "");
+    auto self = shared_from_this();
 
-    if (cmd == "login") {
-        auto user = req.value("user", "");
-        auto pass = req.value("pass", "");
-        if (user.empty() || pass.empty()) {
-            conn->send({ {"error", "missing user or pass"} });
-            return;
-        }
-        UserID userID = 0;
-        // Здесь — проверка в БД или in-memory registry
-        // Для примера — принимаем любого
-        conn->setAuthenticated(userID);
-        m_activeUsers[userID] = conn;
+    m_threadPool.push_task([self,cmd, weak_conn = conn->weak_from_this(), req]
+    {
+        auto conn = weak_conn.lock();
+        if (!conn) return;
+        try {
+            if (cmd == "login" || cmd == "register")
+            {
+                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req);
+                if (cmd == "register")
+                {
+                    conn->send(response);
+                    self->onNewUser();
+                    return;
+                }
 
-        // Отправляем подтверждение + список онлайн
-        std::vector<UserID> online;
-        for (const auto& [u, c] : m_activeUsers) {
-            if (auto c_ptr = c.lock()) online.push_back(u);
-        }
-        conn->send({ {"status", "ok"}, {"user", user}, {"online", online} });
+                UserID userID = std::stoull(response.value("user_id", ""));
+                conn->setAuthenticated(userID);
 
-        // Уведомляем всех, что зашёл новый юзер
-        for (auto& [u, c] : m_activeUsers) {
-            if (auto c_ptr = c.lock(); c_ptr != conn) {
-                c_ptr->send({ {"cmd", "user_joined"}, {"user", user} });
+                {
+                    std::lock_guard<std::mutex> l(self->m_activeMutex);
+                    self->m_activeUsers[userID] = conn;
+                }
+
+                conn->send(response);
+                return;
+            }
+            else
+            {
+                if (!conn->authenticated()) {
+                    conn->send({ {"error", "not authenticated"} });
+                    return;
+                }
+                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req);
+                if (response["cmd"] == "new_chat")
+                {
+                    std::vector<uint64_t> users_id = response["user_ids"];
+                    for (uint64_t target_user_id : users_id) {
+                        if (auto it = self->m_activeUsers.find(target_user_id);
+                            it != self->m_activeUsers.end()) {
+                            if (auto c_ptr = it->second.lock()) {
+                                c_ptr->send(response);
+                            }
+                        }
+                    }
+                    return;
+                }
+                if (response["cmd"] == "new_message")
+                {
+                    uint64_t user_id = response["user_id"];
+                    std::vector<UserPreview> users = self->m_chatRepo.getChatForUser(user_id, response["message"]["chat_id"]).users;
+                    for (UserPreview user : users) {
+                        auto& target_user_id = user.id;
+                        if (auto it = self->m_activeUsers.find(target_user_id);
+                            it != self->m_activeUsers.end()) {
+                            if (auto c_ptr = it->second.lock()) {
+                                c_ptr->send({ {"cmd", "new_message"},{"message",response["message"]}, {"chat_id",response["message"]["chat_id"]}});
+                            }
+                        }
+                    }
+                    return;
+                }
+                conn->send(response);
+                return;
             }
         }
-        return;
-    }
-    // Требуется авторизация
-    if (!conn->authenticated()) {
-        conn->send({ {"error", "not authenticated"} });
-        return;
-    }
-
-    // Делегируем команды
-    try {
-        auto response = m_commandRegistry->execute(cmd, conn->userId(), req);
-        conn->send(response);
-    }
-    catch (const std::exception& e) {
-        conn->send({ {"error", std::string("command failed: ") + e.what()} });
-    }
+        catch (const std::exception& e)
+        {
+            conn->send({{ "error",e.what() }});
+        }
+    });
 }
 
 void Server::onUserDisconnected(const UserID& userId) {
-    m_activeUsers.erase(userId);
 
-    // Уведомляем всех об уходе
-    for (auto& [u, c] : m_activeUsers) {
-        if (auto c_ptr = c.lock()) {
-            c_ptr->send({ {"cmd", "user_left"}, {"user", userId} });
-        }
-    }
+    std::lock_guard<std::mutex> l(m_activeMutex);
+    m_activeUsers.erase(userId);
 }
 
-void Server::sendToUser(const UserID& userId, const nlohmann::json& msg) {
-    auto it = m_activeUsers.find(userId);
-    if (it != m_activeUsers.end()) {
-        if (auto conn = it->second.lock()) {
-            conn->send(msg);
-        }
-        else {
-            m_activeUsers.erase(it);
+void Server::onNewUser() {
+    for (auto& [u, c] : m_activeUsers) {
+        if (auto c_ptr = c.lock()) {
+            c_ptr->send({ {"cmd", "new_user"} });
         }
     }
 }

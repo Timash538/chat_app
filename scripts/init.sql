@@ -7,7 +7,8 @@ CREATE TABLE Users (
 
 CREATE TABLE Chats (
     id SERIAL PRIMARY KEY,
-    type TEXT NOT NULL
+    type TEXT NOT NULL,
+    name TEXT 
 );
 
 CREATE TABLE ChatMembers (

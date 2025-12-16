@@ -2,11 +2,11 @@
 #include "server/Server.h"
 #include <iostream>
 
-std::shared_ptr<Connection> Connection::create(asio::io_context& io_ctx, Server* server) {
-    return std::shared_ptr<Connection>(new Connection(io_ctx, server));
+std::shared_ptr<Connection> Connection::create(asio::io_context& io_ctx, std::shared_ptr<Server> server) {
+    return std::shared_ptr<Connection>(new Connection(io_ctx, std::weak_ptr<Server>(server)));
 }
 
-Connection::Connection(asio::io_context& io_ctx, Server* server)
+Connection::Connection(asio::io_context& io_ctx, std::weak_ptr<Server> server)
     : _socket(io_ctx), _server(server) {
 }
 
@@ -16,7 +16,7 @@ void Connection::start() {
 
 void Connection::doRead() {
     asio::async_read_until(_socket, _readBuf, "\n",
-        [self = shared_from_this()](std::error_code ec, size_t bytes_transferred) {
+        [self = shared_from_this()](std::error_code ec,std::size_t) {
             if (ec) {
                 self->close();
                 return;
@@ -25,15 +25,20 @@ void Connection::doRead() {
             std::istream is(&self->_readBuf);
             std::string line;
             if (std::getline(is, line)) {
+                if (line.empty()) 
+                {
+                    self->doRead();
+                    return;
+                }
                 try {
                     //Check
                     std::cout << line << std::endl;
                     auto json = nlohmann::json::parse(line);
-                    self->_server->handleRequest(self, json);
+                    if (auto server = self->_server.lock())
+                    server->handleRequest(self, json);
                 }
                 catch (const std::exception& e) {
-                    std::cerr << "Malformed JSON: " << e.what() << "\n";
-                    self->close();
+                    self->send({ {"error", "Malformed JSON"} });
                 }
             }
             self->doRead();
@@ -67,15 +72,17 @@ void Connection::doWrite() {
 }
 
 void Connection::setAuthenticated(UserID userId) {
-    _authenticated = true;
-    _userId = std::move(userId);
+    asio::post(_socket.get_executor(), [self = shared_from_this(), userId] {
+        self->_userId = userId;
+    });
 }
 
 void Connection::close() {
     std::error_code ec;
     _socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
     _socket.close(ec);
-    if (_authenticated) {
-        _server->onUserDisconnected(_userId);
+    if (authenticated()) {
+        if (auto server = _server.lock())
+        server->onUserDisconnected(_userId.value());
     }
 }

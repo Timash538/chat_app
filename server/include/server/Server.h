@@ -8,11 +8,16 @@
 #include <vector>
 #include <string>
 #include <CommonTypes.h>
+#include <optional>
+#include <server/UserRepository.h>
+#include <server/MessageRepository.h>
+#include <server/ChatRepository.h>
+#include <server/ThreadPool.h>
 
 class Connection;
 class CommandRegistry;
 
-class Server
+class Server : public std::enable_shared_from_this<Server>
 {
 public:
 	Server(const std::string& host, uint16_t port);
@@ -24,7 +29,7 @@ public:
 	// Äëÿ Connection
 	void handleRequest(std::shared_ptr<Connection> conn, const nlohmann::json& request);
 	void onUserDisconnected(const UserID& userId);
-	void sendToUser(const UserID& userId, const nlohmann::json& msg);
+	void onNewUser();
 
 private:
 	void doAccept();
@@ -35,7 +40,14 @@ private:
 	asio::ip::tcp::acceptor m_acceptor;
 	std::atomic<bool> m_running{ false };
 	std::thread m_ioThread;
+	ThreadPool m_threadPool;
 
+	Database m_db;
+	UserRepository m_userRepo;
+	MessageRepository m_messageRepo;
+	ChatRepository m_chatRepo;
+
+	std::mutex m_activeMutex;
 	std::map<UserID, std::weak_ptr<Connection>> m_activeUsers;
 	std::unique_ptr<CommandRegistry> m_commandRegistry;
 };
