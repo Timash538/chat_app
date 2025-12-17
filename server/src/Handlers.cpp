@@ -12,11 +12,13 @@ nlohmann::json LoginHandler::execute(std::optional<UserID> userID, const nlohman
         throw std::runtime_error("Missing login or pass");
     }
 
-    auto user = m_userRepo.authenticate(login, pass);
+    auto& user = m_userRepo.authenticate(login, pass);
 
     if (!user) {
         throw std::runtime_error("Bad credentials");
     }
+
+    if (user->is_deleted) throw std::runtime_error("User is banned!");
 
     return {
     {"status", "ok"},
@@ -100,4 +102,24 @@ nlohmann::json FetchChatHandler::execute(std::optional<UserID> userID, const nlo
     auto& chat = m_chatRepo.getChatForUser(userID.value(), req.value("chat_id",uint64_t{}));
 
     return { {"cmd","chat"},{"chat",chat} };
+}
+
+nlohmann::json AdminFetchAllInfo::execute(std::optional<UserID> userID, const nlohmann::json& req)
+{
+    return { {"chats",m_adminRepo.fetchAllChats()},{"users",m_adminRepo.fetchAllUsers()},{"cmd", "full_info"}};
+}
+
+nlohmann::json AdminFetchChat::execute(std::optional<UserID> userID, const nlohmann::json& req)
+{
+    auto& chat = m_adminRepo.fetchChat(req["chat_id"].get<uint64_t>());
+    auto& history = m_adminRepo.fetchHistory(req["chat_id"].get<uint64_t>());
+
+    return { {"chat",chat}, {"cmd","chat"}, {"message_history",history} };
+}
+
+nlohmann::json AdminBanhammer::execute(std::optional<UserID> userID, const nlohmann::json& req)
+{
+    m_adminRepo.BanHammer(req["user_id"].get<uint64_t>());
+
+    return { {"cmd","user_status_changed"} };
 }

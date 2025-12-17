@@ -22,12 +22,13 @@ public:
     void setAuthenticated(UserID userId);
     bool authenticated() const { return _userId.has_value(); }
     std::optional<UserID> userId() const { return _userId; }
+    void close();
 
 private:
+
     Connection(asio::io_context& io_ctx, std::weak_ptr<Server> server);
     void doRead();
     void doWrite();
-    void close();
 
     asio::ip::tcp::socket _socket;
     std::weak_ptr<Server> _server;

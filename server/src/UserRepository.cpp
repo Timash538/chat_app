@@ -8,7 +8,7 @@ std::optional<UserFull> UserRepository::authenticate(
     const std::string& password_hash
 ) {
     auto result = m_db.query(
-        "SELECT id, login, username, password_hash "
+        "SELECT id, login, username, password_hash, is_deleted "
         "FROM users WHERE login = $1",
         { login }
     );
@@ -27,7 +27,8 @@ std::optional<UserFull> UserRepository::authenticate(
     return UserFull{
         std::stoull(row[0]),  // id
         row[1],             // login
-        row[2]             // username
+        row[2],             // username
+        (row[4]=="t")              // is_deleted
     };
 }
 
@@ -102,7 +103,7 @@ UserList UserRepository::getAllUsers() {
 UserList UserRepository::getAllUsersExcept(uint64_t id)
 {
     auto result = m_db.query(
-        "SELECT id, username FROM users WHERE id != $1 ORDER BY username", {std::to_string(id)}
+        "SELECT id, username FROM users WHERE id != $1 AND is_deleted = false ORDER BY username", {std::to_string(id)}
     );
     UserList user_list;
     user_list.users.reserve(result.size());

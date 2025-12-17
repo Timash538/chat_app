@@ -12,6 +12,7 @@
 #include <server/UserRepository.h>
 #include <server/MessageRepository.h>
 #include <server/ChatRepository.h>
+#include <server/Adminrepository.h>
 #include <server/ThreadPool.h>
 
 class Connection;
@@ -46,6 +47,7 @@ private:
 	UserRepository m_userRepo;
 	MessageRepository m_messageRepo;
 	ChatRepository m_chatRepo;
+	AdminRepository m_adminRepo;
 
 	std::mutex m_activeMutex;
 	std::map<UserID, std::weak_ptr<Connection>> m_activeUsers;

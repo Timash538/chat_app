@@ -5,6 +5,8 @@
 #include <server/UserRepository.h>
 #include <server/ChatRepository.h>
 #include <server/MessageRepository.h>
+#include <server/AdminRepository.h>
+
 
 class CommandRegistry;
 
@@ -80,4 +82,30 @@ private:
 	ChatRepository& m_chatRepo;
 };
 
+class AdminFetchAllInfo : public ICommand
+{
+public:
+	explicit AdminFetchAllInfo(AdminRepository& adminRepo) : m_adminRepo(adminRepo) {}
+	nlohmann::json execute(std::optional<UserID> userID, const nlohmann::json& req);
+private:
+	AdminRepository& m_adminRepo;
+};
+
+class AdminFetchChat : public ICommand
+{
+public:
+	explicit AdminFetchChat(AdminRepository& adminRepo) : m_adminRepo(adminRepo) {}
+	nlohmann::json execute(std::optional<UserID> userID, const nlohmann::json& req);
+private:
+	AdminRepository& m_adminRepo;
+};
+
+class AdminBanhammer : public ICommand
+{
+public:
+	explicit AdminBanhammer(AdminRepository& adminRepo) : m_adminRepo(adminRepo) {}
+	nlohmann::json execute(std::optional<UserID> userID, const nlohmann::json& req);
+private:
+	AdminRepository& m_adminRepo;
+};
 

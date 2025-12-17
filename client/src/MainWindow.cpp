@@ -10,8 +10,10 @@ MainWindow::MainWindow(QTcpSocket *socket, uint64_t user_id, std::string usernam
     m_user_id(user_id),
     m_username(username)
 {
+    
     disconnect(m_socket, nullptr, nullptr, nullptr);
     ui->setupUi(this);
+    setWindowTitle(QString::fromStdString(username));
     // Подключаем кнопки
     connect(ui->createChatPushButton, &QPushButton::clicked, this, &MainWindow::onChatCreateClicked);
     connect(ui->usersList, &QListWidget::itemDoubleClicked, this, &MainWindow::onUserDoubleClicked);
@@ -183,7 +185,7 @@ void MainWindow::sendRequest(const nlohmann::json& request)
     QString jsonStr = QString::fromStdString(request.dump() + "\n");
     m_socket->write(jsonStr.toUtf8());
 
-    qDebug() << "Login request sent:" << jsonStr;
+    qDebug() << "Request sent:" << jsonStr;
 
 }
 

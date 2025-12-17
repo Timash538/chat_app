@@ -2,7 +2,8 @@ CREATE TABLE Users (
     id SERIAL PRIMARY KEY,
     login TEXT UNIQUE NOT NULL,
     username TEXT NOT NULL,
-    password_hash TEXT NOT NULL
+    password_hash TEXT NOT NULL,
+    is_deleted boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE Chats (

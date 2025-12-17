@@ -10,7 +10,7 @@ AuthDialog::AuthDialog(QWidget *parent)
     m_userId(0)
 {
     ui->setupUi(this);
-
+    setWindowTitle("Authentication");
     // Подключаем кнопки
     connect(ui->L_togglePushButton, &QPushButton::clicked, this, &AuthDialog::onLToggleClicked);
     connect(ui->R_togglePushButton, &QPushButton::clicked, this, &AuthDialog::onRToggleClicked);

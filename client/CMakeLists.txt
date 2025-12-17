@@ -4,9 +4,6 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/ui)
 
 add_executable(client
-
-
-
 )
 
 set(SRC_FILES
@@ -18,7 +15,6 @@ set(SRC_FILES
 )
 
 set(INCLUDE_FILES
-    include/client/Client.h
     include/client/AuthDialog.h
     include/client/MainWindow.h
     include/client/CommonItem.h
@@ -39,6 +35,10 @@ target_include_directories(client PRIVATE
 )
 
 target_sources(client PRIVATE ${SRC_FILES} ${INCLUDE_FILES} ${UI_FILES})
+
+if(QT_NO_DEBUG_OUTPUT)
+    target_compile_definitions(client PRIVATE QT_NO_DEBUG_OUTPUT)
+endif()
 
 target_link_libraries(client
 	PRIVATE

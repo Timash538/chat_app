@@ -25,7 +25,7 @@ MessageHistory MessageRepository::fetchHistory(const uint64_t& chat_id)
 			row[4]
 			});
 	}
-	return { chat_id, std::move(messages) };
+	return { chat_id, messages };
 }
 
 Message MessageRepository::saveMessage(const uint64_t& chat_id,const uint64_t& sender_id, const std::string& content)

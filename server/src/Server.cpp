@@ -12,8 +12,8 @@ void signalHandler(int) { g_interrupted = true; }
 Server::Server(const std::string& host, uint16_t port)
     : m_host(host), m_port(port), m_acceptor(m_ioContext),
     m_db("host=localhost dbname=chat_dev user=dev password=devpass"),
-    m_userRepo(m_db), m_messageRepo(m_db), m_chatRepo(m_db),
-    m_commandRegistry(std::make_unique<CommandRegistry>(m_userRepo, m_messageRepo, m_chatRepo))
+    m_userRepo(m_db), m_messageRepo(m_db), m_chatRepo(m_db), m_adminRepo(m_db),
+    m_commandRegistry(std::make_unique<CommandRegistry>(m_userRepo, m_messageRepo, m_chatRepo, m_adminRepo))
 {
     std::signal(SIGINT, signalHandler);
     std::signal(SIGTERM, signalHandler);
@@ -81,6 +81,20 @@ void Server::handleRequest(std::shared_ptr<Connection> conn, const nlohmann::jso
         auto conn = weak_conn.lock();
         if (!conn) return;
         try {
+            if (cmd == "admin_disconnect_user")// Refactor Перекинуть ссылку Server в CommandHandler и оттуда дисконнектить
+            {
+                if (!self->m_activeUsers.count(req["user_id"].get<uint64_t>())) return;
+                auto& connOfUser = self->m_activeUsers[req["user_id"].get<uint64_t>()].lock();
+                connOfUser->close();
+                return;
+            }
+            if (cmd == "admin_fetch_all" || cmd == "admin_fetch_chat" || cmd == "admin_banhammer")
+            {
+                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req);
+                conn->send(response);
+                return;
+            }
+            else 
             if (cmd == "login" || cmd == "register")
             {
                 auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req);
@@ -108,8 +122,8 @@ void Server::handleRequest(std::shared_ptr<Connection> conn, const nlohmann::jso
                     conn->send({ {"error", "not authenticated"} });
                     return;
                 }
-                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req);
-                if (response["cmd"] == "new_chat")
+                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req); 
+                if (response["cmd"] == "new_chat") // Refactor Перекинуть ссылку Server в CommandHandler и оттуда делать оповещения
                 {
                     std::vector<uint64_t> users_id = response["user_ids"];
                     for (uint64_t target_user_id : users_id) {
@@ -122,7 +136,7 @@ void Server::handleRequest(std::shared_ptr<Connection> conn, const nlohmann::jso
                     }
                     return;
                 }
-                if (response["cmd"] == "new_message")
+                if (response["cmd"] == "new_message") // Refactor Перекинуть ссылку Server в CommandHandler и оттуда делать оповещения
                 {
                     uint64_t user_id = response["user_id"];
                     std::vector<UserPreview> users = self->m_chatRepo.getChatForUser(user_id, response["message"]["chat_id"]).users;

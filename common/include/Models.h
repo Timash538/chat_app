@@ -51,13 +51,15 @@ struct AuthResponse {
 struct UserPreview {
     uint64_t id = 0;
     std::string username;
+    bool is_deleted = false;
 
     friend void to_json(nlohmann::json& j, const UserPreview& u) {
-        j = { {"id", u.id}, {"username", u.username} };
+        j = { {"id", u.id}, {"username", u.username}, {"is_deleted", u.is_deleted} };
     }
     friend void from_json(const nlohmann::json& j, UserPreview& u) {
         u.id = j.value("id", 0);
         u.username = j.value("username", "");
+        u.is_deleted = j.value("is_deleted", bool{false});
     }
 };
 
@@ -65,18 +67,21 @@ struct UserFull {
     uint64_t id = 0;
     std::string login;
     std::string username;
+    bool is_deleted = false;
 
     friend void to_json(nlohmann::json& j, const UserFull& u) {
         j = {
             {"id", u.id},
             {"login", u.login},
-            {"username", u.username}
+            {"username", u.username},
+            {"is_deleted", u.is_deleted}
         };
     }
     friend void from_json(const nlohmann::json& j, UserFull& u) {
         u.id = j.value("id", 0);
         u.login = j.value("login", "");
         u.username = j.value("username", "");
+        u.is_deleted = j.value("is_deleted", bool{false});
     }
 };
 

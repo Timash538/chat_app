@@ -1,6 +1,5 @@
 #pragma once
 
-#include <server/UserRepository.h>
 #include <server/Handlers.h>
 #include <CommonTypes.h>
 #include <server/ICommand.h>
@@ -14,7 +13,8 @@ public:
 	CommandRegistry(
 		UserRepository& userRepo,
 		MessageRepository& messageRepo,
-		ChatRepository& chatRepo
+		ChatRepository& chatRepo,
+		AdminRepository& adminRepo
 	)
 	{
 
@@ -26,6 +26,9 @@ public:
 		m_commands["fetch_chats"] = std::make_unique<FetchChatsHandler>(chatRepo);
 		m_commands["fetch_users"] = std::make_unique<FetchUsersHandler>(userRepo);
 		m_commands["fetch_chat"] = std::make_unique<FetchChatHandler>(chatRepo);
+		m_commands["admin_fetch_all"] = std::make_unique<AdminFetchAllInfo>(adminRepo);
+		m_commands["admin_fetch_chat"] = std::make_unique<AdminFetchChat>(adminRepo);
+		m_commands["admin_banhammer"] = std::make_unique<AdminBanhammer>(adminRepo);
 
 		}
 	void registerCommand(const std::string& name, std::unique_ptr<ICommand>);

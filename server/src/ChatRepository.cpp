@@ -117,7 +117,7 @@ ChatFull ChatRepository::getChatForUser(const uint64_t& user_id, const uint64_t&
             )
             ELSE c.name
         END AS chat_name,
-        json_agg(json_build_object('id', u.id, 'username', u.username)) AS users
+        json_agg(json_build_object('id', u.id, 'username', u.username, 'is_deleted', u.is_deleted)) AS users
     FROM chats c
     JOIN chatmembers cm ON cm.chat_id = c.id
     JOIN users u ON u.id = cm.user_id
@@ -142,7 +142,7 @@ ChatFull ChatRepository::getChatForUser(const uint64_t& user_id, const uint64_t&
             for (const auto& user_json : users_json) {
                 UserPreview user;
                 user.id = user_json["id"].get<uint64_t>();
-                user.username = user_json["username"].get<std::string>();
+                user.username = (user_json["is_deleted"].get<bool>()) ? "[DELETED]" : user_json["username"].get<std::string>();
                 chat.users.push_back(user);
             }
         }
