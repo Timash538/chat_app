@@ -1,0 +1,85 @@
+#include "server/Connection.h"
+#include "server/Server.h"
+
+std::shared_ptr<Connection> Connection::create(asio::io_context& io_ctx, std::shared_ptr<Server> server) {
+    return std::shared_ptr<Connection>(new Connection(io_ctx, std::weak_ptr<Server>(server)));
+}
+
+Connection::Connection(asio::io_context& io_ctx, std::weak_ptr<Server> server)
+    : _socket(io_ctx), _server(server) {
+}
+
+void Connection::start() {
+    doRead();
+}
+
+void Connection::doRead() {
+    asio::async_read_until(_socket, _readBuf, "\n",
+        [self = shared_from_this()](std::error_code ec,std::size_t) {
+            if (ec) {
+                self->close();
+                return;
+            }
+
+            std::istream is(&self->_readBuf);
+            std::string line;
+            if (std::getline(is, line)) {
+                if (line.empty()) 
+                {
+                    self->doRead();
+                    return;
+                }
+                try {
+                    auto json = nlohmann::json::parse(line);
+                    if (auto server = self->_server.lock())
+                    server->handleRequest(self, json);
+                }
+                catch (const std::exception& e) {
+                    self->send({ {"error", "Malformed JSON"} });
+                }
+            }
+            self->doRead();
+        });
+}
+
+void Connection::send(const nlohmann::json& msg) {
+    asio::post(_socket.get_executor(), [self = shared_from_this(), data = msg.dump() + "\n"]() mutable {
+        bool write_in_progress = !self->_writeQueue.empty();
+        self->_writeQueue.push_back(std::move(data));
+        if (!write_in_progress) {
+            self->doWrite();
+        }
+    });
+}
+
+void Connection::doWrite() {
+    auto msg = std::make_shared<std::string>(std::move(_writeQueue.front()));
+    _writeQueue.pop_front();
+
+    asio::async_write(_socket, asio::buffer(*msg),
+        [self = shared_from_this(), msg](std::error_code ec, size_t) {
+            if (ec) {
+                self->close();
+                return;
+            }
+            if (!self->_writeQueue.empty()) {
+                self->doWrite();
+            }
+        });
+}
+
+void Connection::setAuthenticated(uint64_t userId) {
+    asio::post(_socket.get_executor(), [self = shared_from_this(), userId] {
+        self->_userId = userId;
+    });
+}
+
+void Connection::close() {
+    std::error_code ec;
+    _socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
+    _socket.close(ec);
+    if (authenticated()) {
+        if (auto server = _server.lock())
+        server->onUserDisconnected(_userId.value());
+    }
+}
