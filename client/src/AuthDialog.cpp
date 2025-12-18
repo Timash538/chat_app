@@ -145,6 +145,10 @@ void AuthDialog::onSocketReadyRead() {
                     accept();
                     qDebug() << "Authentication successful! User ID:" << m_userId;
                 }
+                else
+                {
+                    ui->stackedWidget->setCurrentIndex(0);
+                }
             }
         } catch (const std::exception& e) {
             QMessageBox::critical(this, "Parse Error",

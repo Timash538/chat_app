@@ -1,6 +1,5 @@
 #include "server/Connection.h"
 #include "server/Server.h"
-#include <iostream>
 
 std::shared_ptr<Connection> Connection::create(asio::io_context& io_ctx, std::shared_ptr<Server> server) {
     return std::shared_ptr<Connection>(new Connection(io_ctx, std::weak_ptr<Server>(server)));
@@ -31,8 +30,6 @@ void Connection::doRead() {
                     return;
                 }
                 try {
-                    //Check
-                    std::cout << line << std::endl;
                     auto json = nlohmann::json::parse(line);
                     if (auto server = self->_server.lock())
                     server->handleRequest(self, json);
@@ -71,7 +68,7 @@ void Connection::doWrite() {
         });
 }
 
-void Connection::setAuthenticated(UserID userId) {
+void Connection::setAuthenticated(uint64_t userId) {
     asio::post(_socket.get_executor(), [self = shared_from_this(), userId] {
         self->_userId = userId;
     });

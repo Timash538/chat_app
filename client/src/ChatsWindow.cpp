@@ -174,11 +174,10 @@ void ChatsWindow::openChat(uint64_t chat_id, const QString& chat_name,
 }
 
 bool ChatsWindow::eventFilter(QObject* obj, QEvent* event) {
-    // Фильтруем только наши QTextEdit'ы ввода
+
     if (event->type() == QEvent::KeyPress) {
         auto* keyEvent = static_cast<QKeyEvent*>(event);
 
-        // проверяем, что событие от поля ввода
         if (auto* edit = qobject_cast<QTextEdit*>(obj)) {
             // Enter / Return без модификаторов = отправка
             if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) &&
@@ -190,35 +189,16 @@ bool ChatsWindow::eventFilter(QObject* obj, QEvent* event) {
                     edit->clear();
                 }
 
-                // не даём QTextEdit добавить перевод строки
                 return true;
             }
 
             // Shift+Enter — разрешаем перенос строки
             if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) &&
                 (keyEvent->modifiers() & Qt::ShiftModifier)) {
-                return false; // стандартное поведение
+                return false;
             }
         }
     }
 
     return QMainWindow::eventFilter(obj, event);
 }
-
-//int ChatsWindow::findTabIndex(uint64_t chat_id) {
-//    // Логика поиска индекса таба по chat_id
-//    return 0;  // Пока заглушка
-//}
-
-//void ChatsWindow::sendMessage() {
-//    if (m_current_chat_id == 0 || ui->messageEntry->toPlainText().isEmpty()) return;
-//
-//    nlohmann::json msg = {
-//        {"cmd", "send_message"},
-//        {"chat_id", m_current_chat_id},
-//        {"content", ui->messageEntry->toPlainText().toStdString()}
-//    };
-//
-//    m_main_window->getSocket()->write((msg.dump() + "\n").c_str());
-//    ui->messageEntry->clear();
-//}

@@ -1,12 +1,11 @@
 #pragma once
 
 #include <server/Handlers.h>
-#include <CommonTypes.h>
 #include <server/ICommand.h>
 #include <nlohmann/json.hpp>
 #include <optional>
 
-
+// Хранитель handler'ов для Server для масштабируемости и простого добавления функционала
 class CommandRegistry
 {
 public:
@@ -32,7 +31,7 @@ public:
 
 		}
 	void registerCommand(const std::string& name, std::unique_ptr<ICommand>);
-	nlohmann::json execute(const std::string& name, std::optional<UserID>, const nlohmann::json& args) const;
+	nlohmann::json execute(const std::string& name, std::optional<uint64_t>, const nlohmann::json& args) const;
 private:
 	std::unordered_map<std::string, std::unique_ptr<ICommand>> m_commands;
 };

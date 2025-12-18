@@ -71,6 +71,11 @@ void ServerGUIWindow::onChatClicked(QListWidgetItem* item) {
 
 void ServerGUIWindow::onBanPushed()
 {
+    if (user_id_selected == 0)
+    {
+        QMessageBox::warning(this, "Error", QString("Сначала выберите пользователя"));
+        return;
+    }
     sendRequest({ {"cmd","admin_disconnect_user"},{"user_id",user_id_selected} });
     sendRequest({ {"cmd","admin_banhammer"},{"user_id",user_id_selected} });
     auto user = dynamic_cast<UserInfoItem*>(ui->usersList->currentItem());
@@ -80,6 +85,11 @@ void ServerGUIWindow::onBanPushed()
 
 void ServerGUIWindow::onKickPushed()
 {
+    if (user_id_selected == 0) 
+    {
+        QMessageBox::warning(this, "Error", QString("Сначала выберите пользователя"));
+        return;
+    }
     sendRequest({ {"cmd","admin_disconnect_user"},{"user_id",user_id_selected} }); 
 }
 
@@ -154,6 +164,12 @@ void ServerGUIWindow::onSocketReadyRead() {
 
                         // дописываем в конец
                         ui->textEdit->append(line);
+                    }
+                    if (cmd == "new_chat" || cmd == "new_user")
+                        user_id_selected = 0;
+                        sendRequest({ { "cmd","admin_fetch_all" } });
+                    {
+
                     }
                 }
                 

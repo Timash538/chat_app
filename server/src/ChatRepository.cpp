@@ -5,20 +5,21 @@ ChatList ChatRepository::getChatPreviewsForUser(const uint64_t& user_id)
 {
     try {
         auto result = m_db.query(R"(
-        SELECT
-        c.id,
-        CASE
-        WHEN c.type = 'direct' THEN u2.username
-        ELSE c.name
-        END AS chat_name,
-        c.type
-        FROM chats c
-        JOIN chatmembers cm1 ON cm1.chat_id = c.id AND cm1.user_id = $1
-        LEFT JOIN chatmembers cm2 ON cm2.chat_id = c.id
-        AND cm2.user_id != $1
-        AND c.type = 'direct'
-        LEFT JOIN users u2 ON u2.id = cm2.user_id
-        ORDER BY c.id
+            SELECT 
+                c.id,
+                CASE 
+                    WHEN c.type = 'direct' THEN u.username
+                    ELSE c.name
+                END AS chat_name,
+                c.type
+            FROM chats c
+            JOIN chatmembers cm ON cm.chat_id = c.id AND cm.user_id = $1
+            LEFT JOIN chatmembers cm2 ON cm2.chat_id = c.id 
+                AND cm2.user_id != $1
+                AND c.type = 'direct'
+            LEFT JOIN users u ON u.id = cm2.user_id
+            ORDER BY c.id DESC
+            
 	)", { std::to_string(user_id) });
 
         if (result.empty())
@@ -42,7 +43,7 @@ ChatList ChatRepository::getChatPreviewsForUser(const uint64_t& user_id)
     }
 }
 
-bool ChatRepository::createChat(
+uint64_t ChatRepository::createChat(
     const std::vector<uint64_t>& user_ids, 
     const std::string& type, 
     const std::optional<std::string>& name)
@@ -53,7 +54,6 @@ bool ChatRepository::createChat(
     }
 
     try {
-        // 1. Создаём чат
         std::string chat_name = name.value_or("");
         std::string insert_chat_sql;
         std::vector<std::string> insert_chat_params;
@@ -72,7 +72,7 @@ bool ChatRepository::createChat(
             );
 
             if (!existing.empty()) {
-                return std::stoull(existing[0][0]);  // Возвращаем существующий ID
+                return std::stoull(existing[0][0]);
             }
             insert_chat_sql = "INSERT INTO chats (type) VALUES ($1) RETURNING id";
             insert_chat_params = { type };
@@ -94,7 +94,7 @@ bool ChatRepository::createChat(
             );
         }
 
-        return true;
+        return std::stoull(chat_result[0][0]);
     }
     catch (const DatabaseError& e) {
         throw std::runtime_error("Failed to create chat: " + std::string(e.what()));
@@ -126,7 +126,7 @@ ChatFull ChatRepository::getChatForUser(const uint64_t& user_id, const uint64_t&
     )", { std::to_string(chat_id), std::to_string(user_id) });
 
         if (result.empty()) {
-            return ChatFull{};  // Пустой объект
+            return ChatFull{};
         }
 
         const auto& row = result[0];
@@ -148,6 +148,33 @@ ChatFull ChatRepository::getChatForUser(const uint64_t& user_id, const uint64_t&
         }
 
         return chat;
+    }
+    catch (const DatabaseError& e) {
+        throw std::runtime_error("Failed to retrieve chat from DB: " + std::string(e.what()));
+    }
+}
+
+std::vector<uint64_t> ChatRepository::getUsersFromChat(const uint64_t& chat_id)
+{
+    try 
+    {
+        auto result = m_db.query(R"(
+        SELECT u.id
+        FROM users u
+        JOIN chatmembers cm ON cm.user_id=u.id AND cm.chat_id = $1
+        )", { std::to_string(chat_id) });
+
+        if (result.empty()) {
+            return {};
+        }
+
+        std::vector<uint64_t> ids;
+        for (const auto& row : result)
+        {
+            ids.push_back(std::stoull(row[0]));
+        }
+
+        return ids;
     }
     catch (const DatabaseError& e) {
         throw std::runtime_error("Failed to retrieve chat from DB: " + std::string(e.what()));

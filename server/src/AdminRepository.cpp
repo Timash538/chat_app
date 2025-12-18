@@ -62,7 +62,7 @@ std::vector<ChatFull> AdminRepository::fetchAllChats()
             chat.id = std::stoull(row[0]);
             chat.name = row[1];
 
-            // Парсим JSON массив пользователей
+            //Парсим JSON массив пользователей
             if (!row[2].empty()) {
                 auto users_json = nlohmann::json::parse(row[2]);
                 for (const auto& user_json : users_json) {
@@ -123,7 +123,6 @@ ChatFull AdminRepository::fetchChat(const uint64_t& chat_id)
 
         const auto& row = result[0];
 
-        // Парсим JSON массив пользователей
         ChatFull chat;
         chat.id = std::stoull(row[0]);
         chat.name = row[1];

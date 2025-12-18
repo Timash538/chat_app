@@ -27,8 +27,6 @@ private slots:
     void onUserDoubleClicked(QListWidgetItem *item);
     void onSocketReadyRead();
     void onChatsWindowClosed();
-    void onNewChatCreated();
-    void onNewUserRegistered();
 
 private:
     void openChatInWindow(uint64_t chat_id, const QString& chat_name,

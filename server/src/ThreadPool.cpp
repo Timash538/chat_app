@@ -3,7 +3,7 @@
 #include <iostream>
 
 ThreadPool::ThreadPool() :
-	m_thread_count((std::thread::hardware_concurrency() != 0 ? std::thread::hardware_concurrency() : 4)-1),
+	m_thread_count((std::thread::hardware_concurrency() != 0 ? std::thread::hardware_concurrency() : 4)-1), // -1 для I/O потока
 	m_thread_queues(m_thread_count),
 	m_index(0)
 {}

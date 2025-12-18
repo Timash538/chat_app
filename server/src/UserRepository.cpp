@@ -25,10 +25,10 @@ std::optional<UserFull> UserRepository::authenticate(
     }
 
     return UserFull{
-        std::stoull(row[0]),  // id
-        row[1],             // login
-        row[2],             // username
-        (row[4]=="t")              // is_deleted
+        std::stoull(row[0]),
+        row[1],
+        row[2],
+        (row[4]=="t")
     };
 }
 

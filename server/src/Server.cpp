@@ -81,79 +81,10 @@ void Server::handleRequest(std::shared_ptr<Connection> conn, const nlohmann::jso
         auto conn = weak_conn.lock();
         if (!conn) return;
         try {
-            if (cmd == "admin_disconnect_user")// Refactor Перекинуть ссылку Server в CommandHandler и оттуда дисконнектить
-            {
-                if (!self->m_activeUsers.count(req["user_id"].get<uint64_t>())) return;
-                auto& connOfUser = self->m_activeUsers[req["user_id"].get<uint64_t>()].lock();
-                connOfUser->close();
-                return;
-            }
-            if (cmd == "admin_fetch_all" || cmd == "admin_fetch_chat" || cmd == "admin_banhammer")
-            {
-                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req);
-                conn->send(response);
-                return;
-            }
-            else 
-            if (cmd == "login" || cmd == "register")
-            {
-                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req);
-                if (cmd == "register")
-                {
-                    conn->send(response);
-                    self->onNewUser();
-                    return;
-                }
-
-                UserID userID = std::stoull(response.value("user_id", ""));
-                conn->setAuthenticated(userID);
-
-                {
-                    std::lock_guard<std::mutex> l(self->m_activeMutex);
-                    self->m_activeUsers[userID] = conn;
-                }
-
-                conn->send(response);
-                return;
-            }
+            if (cmd == "admin_fetch_all" || cmd == "admin_fetch_chat" || req["cmd"] == "admin_banhammer" || cmd == "admin_disconnect_user")
+                self->respondOnAdminRequests(conn, req);
             else
-            {
-                if (!conn->authenticated()) {
-                    conn->send({ {"error", "not authenticated"} });
-                    return;
-                }
-                auto response = self->m_commandRegistry->execute(cmd, conn->userId(), req); 
-                if (response["cmd"] == "new_chat") // Refactor Перекинуть ссылку Server в CommandHandler и оттуда делать оповещения
-                {
-                    std::vector<uint64_t> users_id = response["user_ids"];
-                    for (uint64_t target_user_id : users_id) {
-                        if (auto it = self->m_activeUsers.find(target_user_id);
-                            it != self->m_activeUsers.end()) {
-                            if (auto c_ptr = it->second.lock()) {
-                                c_ptr->send(response);
-                            }
-                        }
-                    }
-                    return;
-                }
-                if (response["cmd"] == "new_message") // Refactor Перекинуть ссылку Server в CommandHandler и оттуда делать оповещения
-                {
-                    uint64_t user_id = response["user_id"];
-                    std::vector<UserPreview> users = self->m_chatRepo.getChatForUser(user_id, response["message"]["chat_id"]).users;
-                    for (UserPreview user : users) {
-                        auto& target_user_id = user.id;
-                        if (auto it = self->m_activeUsers.find(target_user_id);
-                            it != self->m_activeUsers.end()) {
-                            if (auto c_ptr = it->second.lock()) {
-                                c_ptr->send({ {"cmd", "new_message"},{"message",response["message"]}, {"chat_id",response["message"]["chat_id"]}});
-                            }
-                        }
-                    }
-                    return;
-                }
-                conn->send(response);
-                return;
-            }
+                self->respondOnUserRequests(conn, req);
         }
         catch (const std::exception& e)
         {
@@ -162,16 +93,108 @@ void Server::handleRequest(std::shared_ptr<Connection> conn, const nlohmann::jso
     });
 }
 
-void Server::onUserDisconnected(const UserID& userId) {
+void Server::onUserDisconnected(const uint64_t& userId) {
 
     std::lock_guard<std::mutex> l(m_activeMutex);
     m_activeUsers.erase(userId);
 }
 
-void Server::onNewUser() {
+void Server::newUserNotify() {
     for (auto& [u, c] : m_activeUsers) {
         if (auto c_ptr = c.lock()) {
             c_ptr->send({ {"cmd", "new_user"} });
         }
     }
+}
+
+bool Server::respondOnAdminRequests(const std::shared_ptr<Connection>& conn, const nlohmann::json& req)
+{
+    std::string cmd = req.value("cmd", "");
+    if (cmd == "admin_disconnect_user")
+    {
+        if (!m_activeUsers.count(req["user_id"].get<uint64_t>())) return false;
+        auto& connOfUser = m_activeUsers[req["user_id"].get<uint64_t>()].lock();
+        connOfUser->close();
+        return true;
+    }
+    if (cmd == "admin_fetch_all" || cmd == "admin_fetch_chat" || req["cmd"] == "admin_banhammer")
+    {
+        auto response = m_commandRegistry->execute(cmd, conn->userId(), req);
+        conn->send(response);
+        return true;
+    }
+}
+
+bool Server::respondOnUserRequests(const std::shared_ptr<Connection>& conn, const nlohmann::json& req)
+{
+    std::string cmd = req.value("cmd", "");
+    if (cmd == "login" || cmd == "register")
+    {
+        auto response = m_commandRegistry->execute(cmd, conn->userId(), req);
+        if (cmd == "register")
+        {
+            conn->send(response);
+            newUserNotify();
+            return true;
+        }
+
+        uint64_t userID = std::stoull(response.value("user_id", ""));
+        conn->setAuthenticated(userID);
+
+        {
+            std::lock_guard<std::mutex> l(m_activeMutex);
+            m_activeUsers[userID] = conn;
+        }
+
+        conn->send(response);
+        return true;
+    }
+    else
+    {
+        if (!conn->authenticated()) {
+            conn->send({ {"error", "not authenticated"} });
+            return true;
+        }
+        auto response = m_commandRegistry->execute(cmd, conn->userId(), req);
+        if (cmd == "send_message")
+        {
+            if (newMessageNotify(req["chat_id"].get<uint64_t>(),response)) return true;
+        }
+        if (cmd == "create_chat")
+        {
+            if (newChatNotify(response["chat_id"].get<uint64_t>())) return true;
+        }
+        conn->send(response);
+        return true;
+    }
+    return false;
+}
+
+bool Server::newMessageNotify(const uint64_t& chat_id, const nlohmann::json& response)
+{
+    std::vector<uint64_t> user_ids = m_chatRepo.getUsersFromChat(chat_id);
+    std::lock_guard<std::mutex> l(m_activeMutex);
+    for (auto& id : user_ids) {
+        if (auto it = m_activeUsers.find(id);
+            it != m_activeUsers.end()) {
+            if (auto c_ptr = it->second.lock()) {
+                c_ptr->send({ {"cmd", "new_message"},{"message",response["message"]}, {"chat_id",response["message"]["chat_id"]} });
+            }
+        }
+    }
+    return true;
+}
+
+bool Server::newChatNotify(const uint64_t& chat_id)
+{
+    std::vector<uint64_t> user_ids = m_chatRepo.getUsersFromChat(chat_id);
+    std::lock_guard<std::mutex> l(m_activeMutex);
+    for (auto& id : user_ids) {
+        if (m_activeUsers.count(id)){
+            if (auto c_ptr = m_activeUsers.at(id).lock()) {
+                c_ptr->send({ {"cmd", "new_chat"}});
+            }
+        }
+    }
+    return true;
 }

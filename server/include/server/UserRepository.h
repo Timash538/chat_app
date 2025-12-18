@@ -5,6 +5,7 @@
 #include <server/Database.h>
 #include <string>
 
+//Класс для доступа к пользователям в БД
 class UserRepository
 {
 public:

@@ -25,14 +25,3 @@ CREATE TABLE Messages (
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Тестовые данные
-INSERT INTO Users (login, username, password_hash)
-VALUES
-    ('alice', 'Alice', 'fake_hash_1'),
-    ('bob', 'Bob', 'fake_hash_2');
-
-INSERT INTO Chats (type) VALUES ('direct');
-INSERT INTO ChatMembers (chat_id, user_id) VALUES (1, 1), (1, 2);
-INSERT INTO Messages (chat_id, sender_id, content)
-VALUES (1, 1, 'Привет, Боб!');

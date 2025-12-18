@@ -45,11 +45,11 @@ std::vector<std::vector<std::string>> Database::query(
         m_conn,
         sql.c_str(),
         static_cast<int>(param_count),
-        nullptr,              // Oid types
+        nullptr,             
         param_values.data(),
         param_lengths.data(),
         param_formats.data(),
-        0                     // result in text format
+        0 
     );
 
     if (PQresultStatus(res) != PGRES_TUPLES_OK && PQresultStatus(res) != PGRES_COMMAND_OK) {

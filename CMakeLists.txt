@@ -44,4 +44,3 @@ add_subdirectory(serverGUI)
 if(GTest_FOUND)
     add_subdirectory(tests)
 endif()
-

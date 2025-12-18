@@ -7,6 +7,7 @@ class ThreadPool;
 
 extern thread_local bool thread_interrupt_flag;
 
+//Для остановки ThreadPool
 class InterruptableThread
 {
 public:

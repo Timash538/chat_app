@@ -6,7 +6,7 @@ void CommandRegistry::registerCommand(const std::string& name, std::unique_ptr<I
 	m_commands[name] = std::move(command);
 }
 
-nlohmann::json CommandRegistry::execute(const std::string& cmd, std::optional<UserID> userID, const nlohmann::json& args) const
+nlohmann::json CommandRegistry::execute(const std::string& cmd, std::optional<uint64_t> userID, const nlohmann::json& args) const
 {
 	auto it = m_commands.find(cmd);
 	if (it == m_commands.end())

@@ -5,6 +5,7 @@
 #include <Models.h>
 #include <nlohmann/json.hpp>
 
+//Окно для админки
 class ServerGUIWindow : public QMainWindow {
     Q_OBJECT
 
@@ -25,5 +26,5 @@ private:
     void connectToServer();
     Ui::ServerGUIWindow *ui;
     QTcpSocket *m_socket;
-    uint64_t user_id_selected;
+    uint64_t user_id_selected = 0;
 };

@@ -8,10 +8,6 @@ MessageHistory MessageRepository::fetchHistory(const uint64_t& chat_id)
 		{std::to_string(chat_id)}
 	);
 
-	if (result.empty()) {
-		throw std::runtime_error("There is no messages yet.");
-	}
-
 	std::vector<Message> messages;
 	messages.reserve(result.size());
 

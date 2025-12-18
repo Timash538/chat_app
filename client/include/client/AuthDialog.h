@@ -18,8 +18,8 @@ public:
 private slots:
     void onLToggleClicked();
     void onRToggleClicked();
-    void onLoginButtonClicked();    // Новый слот для кнопки логина
-    void onSocketReadyRead();       // Обработка данных от сервера
+    void onLoginButtonClicked();  
+    void onSocketReadyRead();     
 
     void onRegisterButtonClicked();
 

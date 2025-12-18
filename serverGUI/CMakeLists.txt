@@ -40,7 +40,3 @@ target_link_libraries(serverGUI
 		Qt5::Core
 		Qt5::Gui
 )
-
-if(WIN32)
-    target_link_libraries(serverGUI PRIVATE ws2_32)
-endif()

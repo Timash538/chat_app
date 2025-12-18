@@ -14,6 +14,7 @@ MainWindow::MainWindow(QTcpSocket *socket, uint64_t user_id, std::string usernam
     disconnect(m_socket, nullptr, nullptr, nullptr);
     ui->setupUi(this);
     setWindowTitle(QString::fromStdString(username));
+    ui->usersList->setSelectionMode(QAbstractItemView::SelectionMode::MultiSelection);
     // Подключаем кнопки
     connect(ui->createChatPushButton, &QPushButton::clicked, this, &MainWindow::onChatCreateClicked);
     connect(ui->usersList, &QListWidget::itemDoubleClicked, this, &MainWindow::onUserDoubleClicked);
@@ -46,7 +47,44 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::onChatCreateClicked() {
- // открыть диалог создания общих чатов
+    if (ui->usersList->selectedItems().count() < 2)
+    {
+        QMessageBox::critical(this, "Error",
+                              QString("Choose 2 or more users to create group chat"));
+        return;
+    }
+    std::vector<uint64_t> user_ids;
+    user_ids.reserve(ui->usersList->selectedItems().count());
+    for (auto& item : ui->usersList->selectedItems())
+    {
+        user_ids.push_back(dynamic_cast<CommonItem*>(item)->id);
+    }
+    auto name = ui->lineEdit->text().toStdString();
+    if(name.empty())
+    {
+        QMessageBox::critical(this, "Error",
+                              QString("Name can not be empty!"));
+        return;
+    }
+    try {
+        // Формируем JSON для логина
+        nlohmann::json request = {
+            {"cmd", "create_chat"},
+            {"type", "group"},
+            {"name", name},
+            {"user_ids", user_ids}
+        };
+
+        // Отправляем на сервер
+        QString jsonStr = QString::fromStdString(request.dump() + "\n");
+        m_socket->write(jsonStr.toUtf8());
+
+        qDebug() << "Login request sent:" << jsonStr;
+        // открываем окно уже в onReadyRead при получении ответа, что чат создан
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, "Error",
+                              QString("Failed to create request: %1").arg(e.what()));
+    }
 }
 
 void MainWindow::onUserDoubleClicked(QListWidgetItem *item) {
@@ -114,6 +152,9 @@ void MainWindow::onSocketReadyRead() {
                     auto chatList = response["chats"].get<ChatList>();
                     for (auto& i : chatList.chats)
                     {
+                        if (i.type == "direct")
+                        ui->chatsList->addItem(new CommonItem{ QString::fromStdString(i.name),i.id,i.name });
+                        else
                         ui->chatsList->addItem(new CommonItem{ QString::fromStdString(i.name),i.id,i.name });
                     }
                 }
@@ -168,16 +209,6 @@ void MainWindow::onChatsWindowClosed()
     if (m_chats_window)
     delete m_chats_window;
     m_chats_window = nullptr;
-}
-
-void MainWindow::onNewChatCreated() 
-{
-
-}
-
-void MainWindow::onNewUserRegistered() 
-{
-
 }
 
 void MainWindow::sendRequest(const nlohmann::json& request)
